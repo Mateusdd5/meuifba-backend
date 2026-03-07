@@ -4,8 +4,7 @@ data class EventoResponse(
     val id: Long = 0,
     val titulo: String = "",
     val descricao: String = "",
-    val categoriaId: Long = 0,
-    val categoriaNome: String = "",
+    val categoria: CategoriaEventoResponse = CategoriaEventoResponse(),
     val dataEvento: Long = 0,
     val horarioInicio: String = "",
     val horarioFim: String = "",
@@ -17,8 +16,13 @@ data class EventoResponse(
     val numeroVagas: Int = 0,
     val vagasDisponiveis: Int = 0,
     val statusInscricao: String = "",
-    val usuarioCriadorId: Long = 0,
-    val usuarioCriadorNome: String = "",
+    val usuarioCriador: UsuarioCriadorResponse = UsuarioCriadorResponse(),
     val dataCriacao: Long = 0,
     val dataAtualizacao: Long = 0
+)
+
+data class UsuarioCriadorResponse(
+    val id: Long = 0,
+    val nome: String = "",
+    val fotoPerfil: String? = null
 )

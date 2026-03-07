@@ -127,15 +127,32 @@ class EventoService(
         val categoria = categoriaEventoRepository.findById(categoriaId).orElse(null)
         val criador = usuarioRepository.findById(usuarioCriadorId).orElse(null)
         return EventoResponse(
-            id = id, titulo = titulo, descricao = descricao,
-            categoriaId = categoriaId, categoriaNome = categoria?.nome ?: "",
-            dataEvento = dataEvento, horarioInicio = horarioInicio,
-            horarioFim = horarioFim, local = local, publicoAlvo = publicoAlvo,
-            cargaHoraria = cargaHoraria, certificacao = certificacao,
-            requisitos = requisitos, numeroVagas = numeroVagas,
-            vagasDisponiveis = vagasDisponiveis, statusInscricao = statusInscricao,
-            usuarioCriadorId = usuarioCriadorId, usuarioCriadorNome = criador?.nome ?: "",
-            dataCriacao = dataCriacao, dataAtualizacao = dataAtualizacao
+            id = id,
+            titulo = titulo,
+            descricao = descricao,
+            categoria = CategoriaEventoResponse(
+                id = categoria?.id ?: 0,
+                nome = categoria?.nome ?: "",
+                descricao = categoria?.descricao
+            ),
+            dataEvento = dataEvento,
+            horarioInicio = horarioInicio,
+            horarioFim = horarioFim,
+            local = local,
+            publicoAlvo = publicoAlvo,
+            cargaHoraria = cargaHoraria,
+            certificacao = certificacao,
+            requisitos = requisitos,
+            numeroVagas = numeroVagas,
+            vagasDisponiveis = vagasDisponiveis,
+            statusInscricao = statusInscricao,
+            usuarioCriador = UsuarioCriadorResponse(
+                id = criador?.id ?: 0,
+                nome = criador?.nome ?: "",
+                fotoPerfil = null
+            ),
+            dataCriacao = dataCriacao,
+            dataAtualizacao = dataAtualizacao
         )
     }
 }
