@@ -19,7 +19,7 @@ data class Usuario(
     var senha: String = "",
 
     @Column(name = "tipo_usuario", nullable = false)
-    val tipoUsuario: String = "ALUNO",
+    val tipoUsuario: String = "USUARIO",
 
     @Column(name = "foto_perfil")
     val fotoPerfil: String? = null,

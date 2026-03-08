@@ -6,6 +6,7 @@ import com.ifba.meuifba.model.EstatisticaEvento
 import com.ifba.meuifba.model.MarcacaoParticipacao
 import com.ifba.meuifba.repository.*
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
 class EventoService(
@@ -30,7 +31,8 @@ class EventoService(
         eventoRepository.findByCategoriaId(categoriaId).map { it.toResponse() }
 
     fun searchEventos(query: String): List<EventoResponse> =
-        eventoRepository.findByTituloContainingIgnoreCase(query).map { it.toResponse() }
+        eventoRepository.findByTituloContainingIgnoreCaseOrDescricaoContainingIgnoreCase(query, query)
+            .map { it.toResponse() }
 
     fun createEvento(request: CreateEventoRequest): EventoResponse {
         val evento = Evento(
@@ -54,9 +56,18 @@ class EventoService(
         return saved.toResponse()
     }
 
-    fun updateEvento(id: Long, request: UpdateEventoRequest): EventoResponse {
+    fun updateEvento(id: Long, request: UpdateEventoRequest, requesterId: Long) {
         val evento = eventoRepository.findById(id)
             .orElseThrow { RuntimeException("Evento não encontrado") }
+
+        val requester = usuarioRepository.findById(requesterId)
+            .orElseThrow { RuntimeException("Usuário não encontrado") }
+
+        val podeEditar = evento.usuarioCriadorId == requesterId
+                || requester.tipoUsuario == "ADMIN"
+
+        if (!podeEditar) throw RuntimeException("Sem permissão para editar este evento")
+
         val updated = evento.copy(
             titulo = request.titulo,
             descricao = request.descricao,
@@ -73,10 +84,21 @@ class EventoService(
             statusInscricao = request.statusInscricao,
             dataAtualizacao = System.currentTimeMillis()
         )
-        return eventoRepository.save(updated).toResponse()
+        eventoRepository.save(updated)
     }
 
-    fun deleteEvento(id: Long) {
+    fun deleteEvento(id: Long, requesterId: Long) {
+        val evento = eventoRepository.findById(id)
+            .orElseThrow { RuntimeException("Evento não encontrado") }
+
+        val requester = usuarioRepository.findById(requesterId)
+            .orElseThrow { RuntimeException("Usuário não encontrado") }
+
+        val podeDeletar = evento.usuarioCriadorId == requesterId
+                || requester.tipoUsuario == "ADMIN"
+
+        if (!podeDeletar) throw RuntimeException("Sem permissão para deletar este evento")
+
         eventoRepository.deleteById(id)
     }
 
@@ -84,11 +106,29 @@ class EventoService(
         if (marcacaoRepository.existsByUsuarioIdAndEventoId(request.usuarioId, request.eventoId)) {
             throw RuntimeException("Usuário já marcou presença neste evento")
         }
+
         val marcacao = MarcacaoParticipacao(
             usuarioId = request.usuarioId,
             eventoId = request.eventoId
         )
         val saved = marcacaoRepository.save(marcacao)
+
+        // Decrementar vagas disponíveis
+        val evento = eventoRepository.findById(request.eventoId).orElse(null)
+        if (evento != null && evento.vagasDisponiveis > 0) {
+            eventoRepository.save(
+                evento.copy(vagasDisponiveis = evento.vagasDisponiveis - 1)
+            )
+        }
+
+        // Atualizar estatísticas
+        val estatistica = estatisticaRepository.findByEventoId(request.eventoId)
+        if (estatistica != null) {
+            estatisticaRepository.save(
+                estatistica.copy(totalMarcacoes = estatistica.totalMarcacoes + 1)
+            )
+        }
+
         return MarcacaoParticipacaoResponse(
             id = saved.id,
             usuarioId = saved.usuarioId,
@@ -98,8 +138,25 @@ class EventoService(
         )
     }
 
+    @Transactional
     fun desmarcarParticipacao(usuarioId: Long, eventoId: Long) {
         marcacaoRepository.deleteByUsuarioIdAndEventoId(usuarioId, eventoId)
+
+        // Incrementar vagas disponíveis de volta
+        val evento = eventoRepository.findById(eventoId).orElse(null)
+        if (evento != null && evento.numeroVagas > 0) {
+            eventoRepository.save(
+                evento.copy(vagasDisponiveis = minOf(evento.vagasDisponiveis + 1, evento.numeroVagas))
+            )
+        }
+
+        // Atualizar estatísticas
+        val estatistica = estatisticaRepository.findByEventoId(eventoId)
+        if (estatistica != null && estatistica.totalMarcacoes > 0) {
+            estatisticaRepository.save(
+                estatistica.copy(totalMarcacoes = estatistica.totalMarcacoes - 1)
+            )
+        }
     }
 
     fun getEventosMarcados(usuarioId: Long): List<EventoResponse> {

@@ -37,6 +37,16 @@ class JwtUtil {
             .subject
     }
 
+    fun getUsuarioIdFromToken(token: String): Long {
+        val key = Keys.hmacShaKeyFor(secret.toByteArray())
+        val claims = Jwts.parserBuilder()
+            .setSigningKey(key)
+            .build()
+            .parseClaimsJws(token)
+            .body
+        return (claims["usuarioId"] as Number).toLong()
+    }
+
     fun isTokenValid(token: String): Boolean {
         return try {
             val key = Keys.hmacShaKeyFor(secret.toByteArray())

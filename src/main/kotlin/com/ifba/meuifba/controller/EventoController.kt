@@ -3,14 +3,17 @@ package com.ifba.meuifba.controller
 import com.ifba.meuifba.dto.CreateEventoRequest
 import com.ifba.meuifba.dto.MarcarParticipacaoRequest
 import com.ifba.meuifba.dto.UpdateEventoRequest
+import com.ifba.meuifba.security.JwtUtil
 import com.ifba.meuifba.service.EventoService
+import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/eventos")
 class EventoController(
-    private val eventoService: EventoService
+    private val eventoService: EventoService,
+    private val jwtUtil: JwtUtil
 ) {
 
     @GetMapping
@@ -46,19 +49,26 @@ class EventoController(
     @PutMapping("/{id}")
     fun updateEvento(
         @PathVariable id: Long,
-        @RequestBody request: UpdateEventoRequest
+        @RequestBody request: UpdateEventoRequest,
+        httpRequest: HttpServletRequest
     ): ResponseEntity<Any> {
         return try {
-            ResponseEntity.ok(eventoService.updateEvento(id, request))
+            val requesterId = getRequesterIdFromRequest(httpRequest)
+            eventoService.updateEvento(id, request, requesterId)
+            ResponseEntity.ok(eventoService.getEventoById(id))
         } catch (e: Exception) {
             ResponseEntity.badRequest().body(mapOf("erro" to e.message))
         }
     }
 
     @DeleteMapping("/{id}")
-    fun deleteEvento(@PathVariable id: Long): ResponseEntity<Any> {
+    fun deleteEvento(
+        @PathVariable id: Long,
+        httpRequest: HttpServletRequest
+    ): ResponseEntity<Any> {
         return try {
-            eventoService.deleteEvento(id)
+            val requesterId = getRequesterIdFromRequest(httpRequest)
+            eventoService.deleteEvento(id, requesterId)
             ResponseEntity.ok(mapOf("mensagem" to "Evento deletado com sucesso"))
         } catch (e: Exception) {
             ResponseEntity.badRequest().body(mapOf("erro" to e.message))
@@ -103,4 +113,12 @@ class EventoController(
     @GetMapping("/{id}/midias")
     fun getMidias(@PathVariable id: Long): ResponseEntity<Any> =
         ResponseEntity.ok(eventoService.getMidias(id))
+
+    // Extrai o usuarioId do token JWT presente no header Authorization
+    private fun getRequesterIdFromRequest(httpRequest: HttpServletRequest): Long {
+        val authHeader = httpRequest.getHeader("Authorization")
+            ?: throw RuntimeException("Token não encontrado")
+        val token = authHeader.removePrefix("Bearer ").trim()
+        return jwtUtil.getUsuarioIdFromToken(token)
+    }
 }

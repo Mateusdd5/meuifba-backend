@@ -9,4 +9,8 @@ interface EventoRepository : JpaRepository<Evento, Long> {
     fun findByCategoriaId(categoriaId: Long): List<Evento>
     fun findByTituloContainingIgnoreCase(titulo: String): List<Evento>
     fun findByUsuarioCriadorId(usuarioId: Long): List<Evento>
+    fun findByTituloContainingIgnoreCaseOrDescricaoContainingIgnoreCase(
+        titulo: String,
+        descricao: String
+    ): List<Evento>
 }
