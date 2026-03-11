@@ -18,7 +18,8 @@ data class EventoResponse(
     val statusInscricao: String = "",
     val usuarioCriador: UsuarioCriadorResponse = UsuarioCriadorResponse(),
     val dataCriacao: Long = 0,
-    val dataAtualizacao: Long = 0
+    val dataAtualizacao: Long = 0,
+    val imagemBase64: String? = null
 )
 
 data class UsuarioCriadorResponse(

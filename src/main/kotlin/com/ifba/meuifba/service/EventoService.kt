@@ -49,7 +49,8 @@ class EventoService(
             requisitos = request.requisitos,
             numeroVagas = request.numeroVagas,
             vagasDisponiveis = request.numeroVagas,
-            usuarioCriadorId = request.usuarioCriadorId
+            usuarioCriadorId = request.usuarioCriadorId,
+            imagemBase64 = request.imagemBase64
         )
         val saved = eventoRepository.save(evento)
         estatisticaRepository.save(EstatisticaEvento(eventoId = saved.id))
@@ -82,7 +83,8 @@ class EventoService(
             requisitos = request.requisitos,
             numeroVagas = request.numeroVagas,
             statusInscricao = request.statusInscricao,
-            dataAtualizacao = System.currentTimeMillis()
+            dataAtualizacao = System.currentTimeMillis(),
+            imagemBase64 = request.imagemBase64 ?: evento.imagemBase64
         )
         eventoRepository.save(updated)
     }
@@ -102,27 +104,32 @@ class EventoService(
         eventoRepository.deleteById(id)
     }
 
-    fun marcarParticipacao(request: MarcarParticipacaoRequest): MarcacaoParticipacaoResponse {
-        if (marcacaoRepository.existsByUsuarioIdAndEventoId(request.usuarioId, request.eventoId)) {
-            throw RuntimeException("Usuário já marcou presença neste evento")
+    @Transactional
+    fun marcarParticipacao(usuarioId: Long, eventoId: Long): MarcacaoParticipacaoResponse {
+        val evento = eventoRepository.findById(eventoId)
+            .orElseThrow { RuntimeException("Evento não encontrado") }
+
+        if (evento.vagasDisponiveis <= 0 && evento.numeroVagas > 0) {
+            throw RuntimeException("Evento sem vagas disponíveis")
+        }
+
+        if (marcacaoRepository.existsByUsuarioIdAndEventoId(usuarioId, eventoId)) {
+            throw RuntimeException("Usuário já marcou participação neste evento")
         }
 
         val marcacao = MarcacaoParticipacao(
-            usuarioId = request.usuarioId,
-            eventoId = request.eventoId
+            usuarioId = usuarioId,
+            eventoId = eventoId
         )
         val saved = marcacaoRepository.save(marcacao)
 
-        // Decrementar vagas disponíveis
-        val evento = eventoRepository.findById(request.eventoId).orElse(null)
-        if (evento != null && evento.vagasDisponiveis > 0) {
+        if (evento.numeroVagas > 0) {
             eventoRepository.save(
-                evento.copy(vagasDisponiveis = evento.vagasDisponiveis - 1)
+                evento.copy(vagasDisponiveis = maxOf(0, evento.vagasDisponiveis - 1))
             )
         }
 
-        // Atualizar estatísticas
-        val estatistica = estatisticaRepository.findByEventoId(request.eventoId)
+        val estatistica = estatisticaRepository.findByEventoId(eventoId)
         if (estatistica != null) {
             estatisticaRepository.save(
                 estatistica.copy(totalMarcacoes = estatistica.totalMarcacoes + 1)
@@ -142,7 +149,6 @@ class EventoService(
     fun desmarcarParticipacao(usuarioId: Long, eventoId: Long) {
         marcacaoRepository.deleteByUsuarioIdAndEventoId(usuarioId, eventoId)
 
-        // Incrementar vagas disponíveis de volta
         val evento = eventoRepository.findById(eventoId).orElse(null)
         if (evento != null && evento.numeroVagas > 0) {
             eventoRepository.save(
@@ -150,7 +156,6 @@ class EventoService(
             )
         }
 
-        // Atualizar estatísticas
         val estatistica = estatisticaRepository.findByEventoId(eventoId)
         if (estatistica != null && estatistica.totalMarcacoes > 0) {
             estatisticaRepository.save(
@@ -190,7 +195,9 @@ class EventoService(
             categoria = CategoriaEventoResponse(
                 id = categoria?.id ?: 0,
                 nome = categoria?.nome ?: "",
-                descricao = categoria?.descricao
+                descricao = categoria?.descricao,
+                icone = categoria?.icone,
+                cor = categoria?.cor
             ),
             dataEvento = dataEvento,
             horarioInicio = horarioInicio,
@@ -206,10 +213,11 @@ class EventoService(
             usuarioCriador = UsuarioCriadorResponse(
                 id = criador?.id ?: 0,
                 nome = criador?.nome ?: "",
-                fotoPerfil = null
+                fotoPerfil = criador?.fotoPerfil
             ),
             dataCriacao = dataCriacao,
-            dataAtualizacao = dataAtualizacao
+            dataAtualizacao = dataAtualizacao,
+            imagemBase64 = imagemBase64
         )
     }
 }

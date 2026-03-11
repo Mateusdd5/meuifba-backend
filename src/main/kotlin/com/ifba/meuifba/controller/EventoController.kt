@@ -78,7 +78,7 @@ class EventoController(
     @PostMapping("/marcar")
     fun marcarParticipacao(@RequestBody request: MarcarParticipacaoRequest): ResponseEntity<Any> {
         return try {
-            ResponseEntity.ok(eventoService.marcarParticipacao(request))
+            ResponseEntity.ok(eventoService.marcarParticipacao(request.usuarioId, request.eventoId))
         } catch (e: Exception) {
             ResponseEntity.badRequest().body(mapOf("erro" to e.message))
         }
@@ -114,7 +114,6 @@ class EventoController(
     fun getMidias(@PathVariable id: Long): ResponseEntity<Any> =
         ResponseEntity.ok(eventoService.getMidias(id))
 
-    // Extrai o usuarioId do token JWT presente no header Authorization
     private fun getRequesterIdFromRequest(httpRequest: HttpServletRequest): Long {
         val authHeader = httpRequest.getHeader("Authorization")
             ?: throw RuntimeException("Token não encontrado")

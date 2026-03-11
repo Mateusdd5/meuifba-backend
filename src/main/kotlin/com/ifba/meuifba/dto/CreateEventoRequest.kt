@@ -13,5 +13,6 @@ data class CreateEventoRequest(
     val certificacao: Boolean = false,
     val requisitos: String? = null,
     val numeroVagas: Int = 0,
-    val usuarioCriadorId: Long = 0
+    val usuarioCriadorId: Long = 0,
+    val imagemBase64: String? = null
 )

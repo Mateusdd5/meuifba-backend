@@ -13,5 +13,6 @@ data class UpdateEventoRequest(
     val certificacao: Boolean = false,
     val requisitos: String? = null,
     val numeroVagas: Int = 0,
-    val statusInscricao: String = ""
+    val statusInscricao: String = "",
+    val imagemBase64: String? = null
 )

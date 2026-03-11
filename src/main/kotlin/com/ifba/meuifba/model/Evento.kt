@@ -58,5 +58,8 @@ data class Evento(
     val dataCriacao: Long = System.currentTimeMillis(),
 
     @Column(name = "data_atualizacao")
-    val dataAtualizacao: Long = System.currentTimeMillis()
+    val dataAtualizacao: Long = System.currentTimeMillis(),
+
+    @Column(name = "imagem_base64", columnDefinition = "LONGTEXT")
+    val imagemBase64: String? = null
 )
