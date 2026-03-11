@@ -6,7 +6,9 @@ data class DashboardResponse(
     val totalMarcacoes: Int,
     val eventosFuturos: Int,
     val eventosMaisPopulares: List<EventoPopularResponse>,
-    val eventosPorCategoria: List<CategoriaStatResponse>
+    val eventosPorCategoria: List<CategoriaStatResponse>,
+    val categoriasPorMarcacoes: List<CategoriaStatResponse>,
+    val marcacoesPorTurno: List<TurnoStatResponse>
 )
 
 data class EventoPopularResponse(
@@ -21,4 +23,9 @@ data class EventoPopularResponse(
 data class CategoriaStatResponse(
     val categoria: String,
     val total: Int
+)
+
+data class TurnoStatResponse(
+    val turno: String,
+    val totalMarcacoes: Int
 )
